@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
-const User = require('./models/User'); // User schema with password hashing
-const InventoryItem = require('./models/InventoryItem'); // Your inventory model
+const User = require('./models/User');
+const inventoryRoutes = require('./routes/inventoryRoutes');
 
 const app = express();
 const PORT = 5000;
@@ -111,95 +111,8 @@ app.post('/api/verify-token', (req, res) => {
   }
 });
 
-// ======================= PROTECTED INVENTORY ROUTES =======================
-
-// Get all inventory items
-app.get('/api/inventory', authenticate, async (req, res) => {
-  try {
-    const items = await InventoryItem.find();
-    res.json(items);
-  } catch (error) {
-    console.error('Fetch error:', error);
-    res.status(500).json({ error: 'Error fetching inventory' });
-  }
-});
-
-// Add new inventory item
-app.post('/api/inventory/add', authenticate, async (req, res) => {
-  const { name, quantity, price, category } = req.body;
-  try {
-    const newItem = new InventoryItem({ name, quantity, price, category });
-    await newItem.save();
-    res.status(201).json(newItem);
-  } catch (error) {
-    console.error('Add error:', error);
-    res.status(500).json({ error: 'Error adding item' });
-  }
-});
-
-// Get a single inventory item by ID
-app.get('/api/inventory/:id', authenticate, async (req, res) => {
-  const { id } = req.params;
-
-  // Validate ObjectId
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ error: 'Invalid ID format' });
-  }
-
-  try {
-    const item = await InventoryItem.findById(id);
-    if (!item) {
-      return res.status(404).json({ error: 'Item not found' });
-    }
-    res.json(item);
-  } catch (error) {
-    console.error('Fetch single item error:', error);
-    res.status(500).json({ error: 'Error fetching item' });
-  }
-}); 
-
-// Update Inventory 
-
-// Update inventory item by ID
-app.put('/api/inventory/:id', authenticate, async (req, res) => {
-  const { id } = req.params;
-  const { name, quantity, price, category } = req.body;
-
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ error: 'Invalid ID format' });
-  }
-
-  try {
-    const updatedItem = await InventoryItem.findByIdAndUpdate(
-      id,
-      { name, quantity, price, category },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedItem) {
-      return res.status(404).json({ error: 'Item not found' });
-    }
-
-    res.json(updatedItem);
-  } catch (error) {
-    console.error('Update error:', error);
-    res.status(500).json({ error: 'Error updating item' });
-  }
-});
-
-
-
-// Delete inventory item
-app.delete('/api/inventory/:id', authenticate, async (req, res) => {
-  const { id } = req.params;
-  try {
-    await InventoryItem.findByIdAndDelete(id);
-    res.json({ message: 'Item deleted successfully' });
-  } catch (error) {
-    console.error('Delete error:', error);
-    res.status(500).json({ error: 'Error deleting item' });
-  }
-});
+// Routes
+app.use('/api/inventory', inventoryRoutes);
 
 // Start server
 app.listen(PORT, () => {
